@@ -3,7 +3,6 @@ use logos::Logos;
 #[derive(Debug, Logos, PartialEq)]
 #[logos(skip r"[ \t\n\f]+", utf8 = false)] // Ignore this regex pattern between tokens
 pub enum Token<'a> {
-    Error,
     #[regex(r"#[^\n]*", allow_greedy = true)]
     Comment,
     #[token(".")]
