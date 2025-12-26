@@ -17,17 +17,30 @@ pub fn parse<'a>(input: &'a [u8]) -> Result<Vec<Triple<'a>>, ()> {
             (0, Token::Iri(bytes) | Token::BlankNode(bytes)) => {
                 subject = bytes;
             }
+            (0, token) => {
+                panic!("Expected iri or blanknode, found {token:?}");
+            }
             (1, Token::Iri(bytes)) => {
                 predicate = bytes;
+            }
+            (1, token) => {
+                panic!("Expected iri, found {token:?}");
             }
             (2, Token::Literal(bytes) | Token::Iri(bytes)) => {
                 triples.push(Triple(subject, predicate, bytes))
             }
+            (2, token) => {
+                panic!("Expected iri or literal, found {token:?}");
+            }
+            (3, Token::Dot) => {}
+            (3, token) => {
+                panic!("Expected dot, found {token:?}");
+            }
             _ => {
-                panic!()
+                panic!("math is broken")
             }
         }
-        counter = (counter + 1) % 3;
+        counter = (counter + 1) % 4;
     }
     return Ok(triples);
 }
