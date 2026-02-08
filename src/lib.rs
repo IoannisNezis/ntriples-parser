@@ -46,7 +46,10 @@ pub fn parse<'a>(input: &'a [u8]) -> Result<Vec<Triple<'a>>, ()> {
         }
         counter = (counter + 1) % 4;
     }
-    return Ok(triples);
+    if counter != 0 {
+        return Err(());
+    }
+    Ok(triples)
 }
 
 #[cfg(test)]
