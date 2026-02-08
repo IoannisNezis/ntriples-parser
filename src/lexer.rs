@@ -9,10 +9,11 @@ pub enum Token<'a> {
     Dot,
     #[regex(r#"<[^<>\"{}|^`\\\u{00}-\u{20}]*>"#)]
     Iri(&'a [u8]),
-    #[regex(r"_:(?:(?:[A-Za-z\u{00C0}-\u{00D6}\u{00D8}-\u{00F6}\u{00F8}-\u{02FF}\u{0370}-\u{037D}\u{037F}-\u{1FFF}\u{200C}-\u{200D}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}\u{10000}-\u{EFFFF}_])|(?:[0-9]))(?:[A-Za-z\u{00C0}-\u{00D6}\u{00D8}-\u{00F6}\u{00F8}-\u{02FF}\u{0370}-\u{037D}\u{037F}-\u{1FFF}\u{200C}-\u{200D}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}\u{10000}-\u{EFFFF}_0-9\u{00B7}\u{0300}-\u{036F}\u{203F}-\u{2040}\.-]*)?")]
+    #[regex(r"_:(?:(?:[A-Za-z\u{00C0}-\u{00D6}\u{00D8}-\u{00F6}\u{00F8}-\u{02FF}\u{0370}-\u{037D}\u{037F}-\u{1FFF}\u{200C}-\u{200D}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}\u{10000}-\u{EFFFF}_])|(?:[0-9]))(?:[A-Za-z\u{00C0}-\u{00D6}\u{00D8}-\u{00F6}\u{00F8}-\u{02FF}\u{0370}-\u{037D}\u{037F}-\u{1FFF}\u{200C}-\u{200D}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}\u{10000}-\u{EFFFF}_0-9\u{00B7}\u{0300}-\u{036F}\u{203F}-\u{2040}\.-]*[A-Za-z\u{00C0}-\u{00D6}\u{00D8}-\u{00F6}\u{00F8}-\u{02FF}\u{0370}-\u{037D}\u{037F}-\u{1FFF}\u{200C}-\u{200D}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}\u{10000}-\u{EFFFF}_0-9\u{00B7}\u{0300}-\u{036F}\u{203F}-\u{2040}-])?")]
     BlankNode(&'a [u8]),
     #[regex(r#""([^\u{5C}\u{A}\u{D}"]|\\[tbnrf"'\\]|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})*"(\^\^<[^<>\"{}|^`\\\u{00}-\u{20}]*>|@[a-zA-Z]+(-[a-zA-Z0-9]+)*)?"#)]
-    // NOTE: unquoted numeric literals (integer, decimal, double)
+    // NOTE: unquoted numeric literals (integer, decimal, double) are not part of the
+    // N-Triples spec but QLever responds with them, so we accept them here.
     #[regex(r"[+-]?[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?")]
     #[regex(r"[+-]?[0-9]+([eE][+-]?[0-9]+)?")]
     Literal(&'a [u8]),
@@ -91,6 +92,25 @@ mod test {
                 Ok(Token::Literal(br#""x"^^<asdadasd>"#)),
                 Ok(Token::Literal(b"8.0"))
             ]
+        );
+    }
+
+    #[test]
+    fn tokenize_blanknode_with_inner_dot() {
+        let tokens = Token::lexer(b"_:a.b");
+        assert_eq!(
+            tokens.into_iter().collect::<Vec<_>>(),
+            vec![Ok(Token::BlankNode(b"_:a.b"))]
+        );
+    }
+
+    #[test]
+    fn tokenize_blanknode_trailing_dot() {
+        // NOTE: trailing dot must not be consumed as part of the blank node label
+        let tokens = Token::lexer(b"_:a.");
+        assert_eq!(
+            tokens.into_iter().collect::<Vec<_>>(),
+            vec![Ok(Token::BlankNode(b"_:a")), Ok(Token::Dot)]
         );
     }
 
