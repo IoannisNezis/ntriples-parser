@@ -24,7 +24,7 @@ pub fn parse<'a>(input: &'a [u8]) -> Result<Vec<Triple<'a>>, ()> {
             (1, Token::Iri(bytes)) => {
                 predicate = bytes;
             }
-            (2, Token::Literal(bytes) | Token::Iri(bytes)) => {
+            (2, Token::Literal(bytes) | Token::Iri(bytes) | Token::BlankNode(bytes)) => {
                 triples.push(Triple(subject, predicate, bytes))
             }
             (3, Token::Dot) => {}
