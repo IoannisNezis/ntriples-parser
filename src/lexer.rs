@@ -12,6 +12,9 @@ pub enum Token<'a> {
     #[regex(r"_:(?:(?:[A-Za-z\u{00C0}-\u{00D6}\u{00D8}-\u{00F6}\u{00F8}-\u{02FF}\u{0370}-\u{037D}\u{037F}-\u{1FFF}\u{200C}-\u{200D}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}\u{10000}-\u{EFFFF}_])|(?:[0-9]))(?:[A-Za-z\u{00C0}-\u{00D6}\u{00D8}-\u{00F6}\u{00F8}-\u{02FF}\u{0370}-\u{037D}\u{037F}-\u{1FFF}\u{200C}-\u{200D}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}\u{10000}-\u{EFFFF}_0-9\u{00B7}\u{0300}-\u{036F}\u{203F}-\u{2040}\.-]*)?")]
     BlankNode(&'a [u8]),
     #[regex(r#""[^\u{27}\u{5C}\u{A}\u{D}"]*"(\^\^<[^<>\"{}|^`\\\u{00}-\u{20}]*>|@en)?"#)]
+    // NOTE: unquoted numeric literals (integer, decimal, double)
+    #[regex(r"[+-]?[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?")]
+    #[regex(r"[+-]?[0-9]+([eE][+-]?[0-9]+)?")]
     Literal(&'a [u8]),
 }
 
@@ -21,7 +24,7 @@ mod test {
     use logos::Logos;
 
     #[test]
-    fn tokenize_triple() {
+    fn tokenize_triple_1() {
         let tokens = Token::lexer(br#"_:a <iri> "strings"@en"#);
         assert_eq!(
             tokens.into_iter().map(|token| token).collect::<Vec<_>>(),
@@ -29,6 +32,20 @@ mod test {
                 Ok(Token::BlankNode(b"_:a")),
                 Ok(Token::Iri(b"<iri>")),
                 Ok(Token::Literal(br#""strings"@en"#))
+            ]
+        );
+    }
+
+    #[test]
+    fn tokenize_triple_2() {
+        let tokens = Token::lexer(br#"<test> <http://www.w3.org/2001/XMLSchema#test> 8.0 ."#);
+        assert_eq!(
+            tokens.into_iter().map(|token| token).collect::<Vec<_>>(),
+            vec![
+                Ok(Token::Iri(b"<test>")),
+                Ok(Token::Iri(b"<http://www.w3.org/2001/XMLSchema#test>")),
+                Ok(Token::Literal(br#"8.0"#)),
+                Ok(Token::Dot)
             ]
         );
     }
@@ -65,13 +82,14 @@ mod test {
 
     #[test]
     fn tokenize_literal() {
-        let tokens = Token::lexer(br#""simple string" "hello"@en "x"^^<asdadasd>"#);
+        let tokens = Token::lexer(br#""simple string" "hello"@en "x"^^<asdadasd> 8.0"#);
         assert_eq!(
             tokens.into_iter().map(|token| token).collect::<Vec<_>>(),
             vec![
                 Ok(Token::Literal(br#""simple string""#)),
                 Ok(Token::Literal(br#""hello"@en"#)),
-                Ok(Token::Literal(br#""x"^^<asdadasd>"#))
+                Ok(Token::Literal(br#""x"^^<asdadasd>"#)),
+                Ok(Token::Literal(b"8.0"))
             ]
         );
     }
