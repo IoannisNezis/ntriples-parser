@@ -93,4 +93,42 @@ mod test {
             ]
         );
     }
+
+    // BUG 5: apostrophes in strings are incorrectly rejected
+    #[test]
+    fn tokenize_literal_with_apostrophe() {
+        let tokens = Token::lexer(br#""it's a test""#);
+        assert_eq!(
+            tokens.into_iter().collect::<Vec<_>>(),
+            vec![Ok(Token::Literal(br#""it's a test""#))]
+        );
+    }
+
+    // BUG 6: escape sequences in strings are not supported
+    #[test]
+    fn tokenize_literal_with_escapes() {
+        let tokens = Token::lexer(br#""line1\nline2" "quote\"inside" "back\\slash""#);
+        assert_eq!(
+            tokens.into_iter().collect::<Vec<_>>(),
+            vec![
+                Ok(Token::Literal(br#""line1\nline2""#)),
+                Ok(Token::Literal(br#""quote\"inside""#)),
+                Ok(Token::Literal(br#""back\\slash""#)),
+            ]
+        );
+    }
+
+    // BUG 7: only @en is accepted as a language tag
+    #[test]
+    fn tokenize_literal_with_language_tags() {
+        let tokens = Token::lexer(br#""hallo"@de "bonjour"@fr "color"@en-US"#);
+        assert_eq!(
+            tokens.into_iter().collect::<Vec<_>>(),
+            vec![
+                Ok(Token::Literal(br#""hallo"@de"#)),
+                Ok(Token::Literal(br#""bonjour"@fr"#)),
+                Ok(Token::Literal(br#""color"@en-US"#)),
+            ]
+        );
+    }
 }

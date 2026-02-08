@@ -48,3 +48,40 @@ pub fn parse<'a>(input: &'a [u8]) -> Result<Vec<Triple<'a>>, ()> {
     }
     return Ok(triples);
 }
+
+#[cfg(test)]
+mod test {
+    use super::parse;
+
+    // NOTE: regression test for bug 1 — comments used to crash the parser
+    #[test]
+    fn parse_comment_line() {
+        let input = b"# this is a comment\n<s> <p> <o> .";
+        let triples = parse(input).unwrap();
+        assert_eq!(triples.len(), 1);
+        assert_eq!(triples[0].0, b"<s>");
+    }
+
+    // NOTE: regression test for bug 2 — invalid input used to panic
+    #[test]
+    fn parse_invalid_input_returns_err() {
+        let input = b"not valid ntriples!";
+        assert!(parse(input).is_err());
+    }
+
+    // BUG 3: incomplete input should be an error
+    #[test]
+    fn parse_incomplete_triple_returns_err() {
+        let input = b"<s> <p>";
+        assert!(parse(input).is_err());
+    }
+
+    // BUG 4: blank nodes should be accepted as objects
+    #[test]
+    fn parse_blank_node_as_object() {
+        let input = b"_:a <p> _:b .";
+        let triples = parse(input).unwrap();
+        assert_eq!(triples.len(), 1);
+        assert_eq!(triples[0].2, b"_:b");
+    }
+}
