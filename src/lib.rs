@@ -13,6 +13,10 @@ pub fn parse<'a>(input: &'a [u8]) -> Result<Vec<Triple<'a>>, ()> {
     let mut predicate: &[u8] = &[];
     for token in tokens {
         let token = token.unwrap();
+        // NOTE: skip comments without advancing the state counter
+        if matches!(token, Token::Comment) {
+            continue;
+        }
         match (counter, token) {
             (0, Token::Iri(bytes) | Token::BlankNode(bytes)) => {
                 subject = bytes;
